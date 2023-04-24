@@ -1,18 +1,30 @@
-node{
-  def app
+node {
+
+   def registryProjet='registry.gitlab.com/saidmokrani/presentation-jenkins'
+   def IMAGE="${registryProjet}:version-${env.BUILD_ID}"
 
     stage('Clone') {
-        checkout scm
+          git 'https://github.com/saidmokrani/jenkins--build-docke.git'
     }
 
-    stage('Build image') {
-        app = docker.build("said/nginx")
+    def img = stage('Build') {
+          docker.build("$IMAGE",  '.')
     }
 
-    stage('Test image') {
-        docker.image('said/nginx').withRun('-p 80:80') { c ->
-        sh 'docker ps'
-        sh 'curl localhost'
-	     }
+    stage('Run') {
+          img.withRun("--name run-$BUILD_ID -p 80:80") { c ->
+            sh 'curl localhost'
+          }
     }
+
+    stage('Push') {
+          docker.withRegistry('https://registry.gitlab.com', 'reg1' ) {
+              img.push 'latest'
+              img.push()
+          }
+    }
+
 }
+
+
+
